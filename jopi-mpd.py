@@ -2,6 +2,7 @@
 
 from time import sleep, localtime, strftime
 from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
+from cleaner import cleanString
 import sys
 import subprocess
 import threading
@@ -12,7 +13,7 @@ import threading
 lcd = Adafruit_CharLCDPlate()
 
 def display(text):
-	fmtText = text[:16] + "\n" + text[16:]
+	fmtText = cleanString(text[:16] + "\n" + text[16:])
 	lcd.clear()
 	lcd.message(fmtText)
 
