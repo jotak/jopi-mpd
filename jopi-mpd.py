@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from time import sleep
+from time import sleep, gmtime, strftime
 from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
 import sys
 import subprocess
@@ -17,7 +17,7 @@ def display(text):
 	lcd.message(fmtText)
 
 # Clear display and show greeting, pause 1 sec
-display("Welcome on jotak's LCD Raspify!")
+display("Welcome on jotak's LCD Raspyfi!")
 sleep(3)
 
 state = "playback"
@@ -35,6 +35,8 @@ curPressed = -1
 colors = (lcd.RED , lcd.YELLOW, lcd.GREEN, lcd.TEAL, lcd.BLUE, lcd.VIOLET)
 curColor = lcd.RED
 
+showingTime = False
+
 def fetchLists():
 	global lists
 	lists = subprocess.check_output(["mpc", "lsplaylists"]).splitlines()
@@ -45,15 +47,21 @@ def showList():
 	display(lists[currentList])
 
 def showPlaying():
-	curSong = subprocess.check_output(["mpc", "current"])
-	if curSong == "":
-		display("No song selected")
+	if showingTime:
+		showTime()
 	else:
-		display(curSong)
-	global previousSong
-	if previousSong != curSong:
-		previousSong = curSong
-		changeColor()
+		curSong = subprocess.check_output(["mpc", "current"])
+		if curSong == "":
+			display("No song selected")
+		else:
+			display(curSong)
+		global previousSong
+		if previousSong != curSong:
+			previousSong = curSong
+			changeColor()
+
+def showTime():
+	display(strftime("%a, %d %b %Y %H:%M:%S", gmtime()))
 
 def buttonPressed(i):
 	global state
@@ -69,33 +77,35 @@ def changeColor():
 	lcd.backlight(colors[curColor])
 
 def buttonPressedMenu(i):
-	global state, currentList, lists
+	global state, currentList, lists, showingTime
 	if i == 0:
 		state = "playback"
 	elif i == 1:
-		display("-- unused button --")
-	elif i == 2:
 		# prev list
-		if currentList == 0:
-			currentList = len(lists) - 1
-		else:
-			currentList-=1
-		showList()
+                if currentList == 0:
+                        currentList = len(lists) - 1
+                else:
+                        currentList-=1
+                showList()
+	elif i == 2:
+		showingTime = not showingTime
+		if not showingTime:
+			showList()
 	elif i == 3:
-		# next list
-		currentList+=1
-		if currentList == len(lists):
-			currentList = 0
-		showList()
-	elif i == 4:
 		# play list
-		subprocess.call(["mpc", "clear"])
-		subprocess.call(["mpc", "load", lists[currentList]])
-		subprocess.call(["mpc", "play"])
-		state = "playback"
+                subprocess.call(["mpc", "clear"])
+                subprocess.call(["mpc", "load", lists[currentList]])
+                subprocess.call(["mpc", "play"])
+                state = "playback"
+	elif i == 4:
+		# next list
+                currentList+=1
+                if currentList == len(lists):
+                        currentList = 0
+                showList()
 
 def buttonPressedPlayback(i):
-	global state, songDisplayMode
+	global state, showingTime
 	if i == 0:
 		fetchLists()
 		state = "menu"
@@ -103,7 +113,7 @@ def buttonPressedPlayback(i):
 	elif i == 1:
 		subprocess.call(["mpc", "prev"])
 	elif i == 2:
-		changeColor()
+		showingTime = not showingTime
 	elif i == 3:
 		subprocess.call(["mpc", "toggle"])
 	elif i == 4:
@@ -112,8 +122,8 @@ def buttonPressedPlayback(i):
 class DisplayThread ( threading.Thread ):
 	def run ( self ):
 		while True:
-			global state
-			if state == "playback":
+			global state, showingTime
+			if state == "playback" or showingTime:
 				showPlaying()
 				sleep(1)
 
