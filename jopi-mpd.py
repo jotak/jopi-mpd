@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from time import sleep, gmtime, strftime
+from time import sleep, localtime, strftime
 from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
 import sys
 import subprocess
@@ -61,7 +61,7 @@ def showPlaying():
 			changeColor()
 
 def showTime():
-	display(strftime("%a, %d %b %Y %H:%M:%S", gmtime()))
+	display(strftime("%a, %d %b %Y %H:%M:%S", localtime()))
 
 def buttonPressed(i):
 	global state
