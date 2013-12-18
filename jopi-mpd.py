@@ -128,6 +128,7 @@ def buttonPressedPlayback(i):
 	if i == 0:
 		fetchLists()
 		refreshModeList()
+		state = "menu"
 	elif i == 1:
 		subprocess.call(["mpc", "prev"])
 	elif i == 2:
