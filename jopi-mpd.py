@@ -6,9 +6,13 @@ from cleaner import cleanString
 import sys
 import subprocess
 import threading
+import os
+
+welcomeText = "Welcome on jotak's LCD Raspyfi!"
+musicAbsPath = "/home/pi/music/"
+playlistRelPath = "WEBRADIO/playlists/"
 
 class TextScroller:
-	'Class for scrolling text'
 	text = ''
 	position = 0
 	textLength = 0
@@ -16,7 +20,7 @@ class TextScroller:
 
 	def scroll(self):
 		nextPos = self.position + self.step
-		if nextPos < 0 or nextPos > self.textLength - 32:
+		if nextPos < 0 or nextPos >= self.textLength - 32:
 			self.step *= -1
 		else:
 			self.position = nextPos
@@ -46,7 +50,7 @@ def display(text):
 	lcd.message(fmtText)
 
 # Clear display and show greeting, pause 1 sec
-display("Welcome on jotak's LCD Raspyfi!")
+display(welcomeText)
 sleep(3)
 
 state = "play"
@@ -54,6 +58,7 @@ state = "play"
 # Use subprocess.check_output to get list of playlists (mpc lsplaylists)
 lists = ["no-list"]
 currentList = 0
+fileListIdx = -1
 previousSong = ""
 
 # Buttons
@@ -67,8 +72,11 @@ curColor = lcd.RED
 showingTime = False
 
 def fetchLists():
-	global lists
+	global lists, fileListIdx, musicAbsPath, playlistRelPath
 	lists = subprocess.check_output(["mpc", "lsplaylists"]).splitlines()
+	fileListIdx = len(lists)
+	lists.extend(os.listdir(musicAbsPath + playlistRelPath))
+
 fetchLists()
 
 def buttonPressed(i):
@@ -102,7 +110,10 @@ def buttonPressedMenu(i):
 	elif i == 3:
 		# play list
                 subprocess.call(["mpc", "clear"])
-                subprocess.call(["mpc", "load", lists[currentList]])
+		if currentList < fileListIdx:
+	                subprocess.call(["mpc", "load", lists[currentList]])
+		else:
+			subprocess.call(["mpc", "load", playlistRelPath + lists[currentList]])
                 subprocess.call(["mpc", "play"])
                 state = "play"
 	elif i == 4:
