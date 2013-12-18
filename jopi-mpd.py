@@ -7,6 +7,34 @@ import sys
 import subprocess
 import threading
 
+class TextScroller:
+	'Class for scrolling text'
+	text = ''
+	position = 0
+	textLength = 0
+	step = 0
+
+	def scroll(self):
+		nextPos = self.position + self.step
+		if nextPos < 0 or nextPos > self.textLength - 32:
+			self.step *= -1
+		else:
+			self.position = nextPos
+
+		return self.text[self.position:self.textLength]
+
+	def setText(self, newText):
+		self.text = newText
+		self.textLength = len(newText)
+		self.position = 0
+		if self.textLength <= 32:
+			# Text is small enough => deactivate scrolling
+			self.step = 0
+		else:
+			# 1 means left to right
+			self.step = 1
+
+scroller = TextScroller()
 
 # Initialize the LCD plate.  Should auto-detect correct I2C bus.  If not,
 # pass '0' for early 256 MB Model B boards or '1' for all later versions
@@ -21,7 +49,7 @@ def display(text):
 display("Welcome on jotak's LCD Raspyfi!")
 sleep(3)
 
-state = "playback"
+state = "play"
 
 # Use subprocess.check_output to get list of playlists (mpc lsplaylists)
 lists = ["no-list"]
@@ -43,27 +71,6 @@ def fetchLists():
 	lists = subprocess.check_output(["mpc", "lsplaylists"]).splitlines()
 fetchLists()
 
-def showList():
-	global lists, currentList
-	display(lists[currentList])
-
-def showPlaying():
-	if showingTime:
-		showTime()
-	else:
-		curSong = subprocess.check_output(["mpc", "current"])
-		if curSong == "":
-			display("No song selected")
-		else:
-			display(curSong)
-		global previousSong
-		if previousSong != curSong:
-			previousSong = curSong
-			changeColor()
-
-def showTime():
-	display(strftime("%a, %d %b %Y %H:%M:%S", localtime()))
-
 def buttonPressed(i):
 	global state
 	if state == "menu":
@@ -80,37 +87,36 @@ def changeColor():
 def buttonPressedMenu(i):
 	global state, currentList, lists, showingTime
 	if i == 0:
-		state = "playback"
+		state = "play"
 	elif i == 1:
 		# prev list
                 if currentList == 0:
                         currentList = len(lists) - 1
                 else:
-                        currentList-=1
-                showList()
+                        currentList -= 1
+                refreshModeList()
 	elif i == 2:
 		showingTime = not showingTime
 		if not showingTime:
-			showList()
+			refreshModeList()
 	elif i == 3:
 		# play list
                 subprocess.call(["mpc", "clear"])
                 subprocess.call(["mpc", "load", lists[currentList]])
                 subprocess.call(["mpc", "play"])
-                state = "playback"
+                state = "play"
 	elif i == 4:
 		# next list
-                currentList+=1
+                currentList += 1
                 if currentList == len(lists):
                         currentList = 0
-                showList()
+                refreshModeList()
 
 def buttonPressedPlayback(i):
 	global state, showingTime
 	if i == 0:
 		fetchLists()
-		state = "menu"
-		showList()
+		refreshModeList()
 	elif i == 1:
 		subprocess.call(["mpc", "prev"])
 	elif i == 2:
@@ -120,13 +126,38 @@ def buttonPressedPlayback(i):
 	elif i == 4:
 		subprocess.call(["mpc", "next"])
 
+
+def refreshModeList():
+	global lists, currentList, scroller
+	scroller.setText(lists[currentList])
+
+
+def refreshModePlaying():
+	global previousSong, scroller
+	curSong = subprocess.check_output(["mpc", "current"])
+	if previousSong != curSong:
+		previousSong = curSong
+		changeColor()
+		if curSong == "":
+			scroller.setText("No song selected")
+		else:
+			scroller.setText(curSong)
+
+
+def refreshModeTime():
+	scroller.setText(strftime("%a, %d %b %Y %H:%M:%S", localtime()))
+
+
 class DisplayThread ( threading.Thread ):
-	def run ( self ):
+	def run (self):
 		while True:
-			global state, showingTime
-			if state == "playback" or showingTime:
-				showPlaying()
-				sleep(1)
+			global state, showingTime, scroller
+			if showingTime:
+				refreshModeTime()
+			elif state == "play":
+				refreshModePlaying()
+			display(scroller.scroll())
+			sleep(1)
 
 DisplayThread().start()
 
