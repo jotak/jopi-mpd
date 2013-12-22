@@ -96,6 +96,7 @@ def buttonPressedMenu(i):
 	global state, currentList, lists, showingTime
 	if i == 0:
 		state = "play"
+		refreshModePlaying(True)
 	elif i == 1:
 		# prev list
                 if currentList == 0:
@@ -116,6 +117,7 @@ def buttonPressedMenu(i):
 			subprocess.call(["mpc", "load", playlistRelPath + lists[currentList]])
                 subprocess.call(["mpc", "play"])
                 state = "play"
+		refreshModePlaying(True)
 	elif i == 4:
 		# next list
                 currentList += 1
@@ -133,6 +135,7 @@ def buttonPressedPlayback(i):
 		subprocess.call(["mpc", "prev"])
 	elif i == 2:
 		showingTime = not showingTime
+		refreshModePlaying(True)
 	elif i == 3:
 		subprocess.call(["mpc", "toggle"])
 	elif i == 4:
@@ -144,7 +147,7 @@ def refreshModeList():
 	scroller.setText(lists[currentList])
 
 
-def refreshModePlaying():
+def refreshModePlaying(forceSetText=False):
 	global previousSong, scroller
 	curSong = subprocess.check_output(["mpc", "current"])
 	if previousSong != curSong:
@@ -154,13 +157,15 @@ def refreshModePlaying():
 			scroller.setText("No song selected")
 		else:
 			scroller.setText(curSong)
+	elif forceSetText:
+		scroller.setText(curSong)
 
 
 def refreshModeTime():
 	scroller.setText(strftime("%a, %d %b %Y %H:%M:%S", localtime()))
 
 
-class DisplayThread ( threading.Thread ):
+class DisplayThread(threading.Thread):
 	def run (self):
 		while True:
 			global state, showingTime, scroller
