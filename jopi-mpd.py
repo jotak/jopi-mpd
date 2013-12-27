@@ -164,11 +164,19 @@ def refreshModePlaying(forceSetText=False):
 def refreshModeTime():
 	scroller.setText(strftime("%a, %d %b %Y %H:%M:%S", localtime()))
 
+def checkRun():
+	try:
+		with open('/var/lock/stop-jopi-mpd'):
+			return False
+	except IOError:
+		return True
 
 class DisplayThread(threading.Thread):
 	def run (self):
 		while True:
 			global state, showingTime, scroller
+			if checkRun() == False:
+				break
 			if showingTime:
 				refreshModeTime()
 			elif state == "play":
@@ -179,6 +187,8 @@ class DisplayThread(threading.Thread):
 DisplayThread().start()
 
 while True:
+	if checkRun() == False:
+		break
 	sleep(.1)
 	nothingPressed = True
 	for i in range(5):
@@ -190,4 +200,6 @@ while True:
 				break
 	if nothingPressed:
 		curPressed = -1
+
+display("Goodbye!")
 
