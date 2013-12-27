@@ -20,23 +20,34 @@ class TextScroller:
 
 	def scroll(self):
 		nextPos = self.position + self.step
-		if nextPos < 0 or nextPos >= self.textLength - 32:
+		if nextPos < 0 or nextPos >= self.textLength - 16:
 			self.step *= -1
 		else:
 			self.position = nextPos
-
-		return self.text[self.position:self.textLength]
+		self.display()
 
 	def setText(self, newText):
 		self.text = newText
 		self.textLength = len(newText)
 		self.position = 0
-		if self.textLength <= 32:
+		if self.textLength <= 16:
 			# Text is small enough => deactivate scrolling
 			self.step = 0
 		else:
 			# 1 means left to right
 			self.step = 1
+
+	def display(self):
+		global lcd
+		topStart = self.position
+		topEnd = topStart + 16
+		bottomEnd = self.textLength - self.position - 1
+		bottomStart = bottomEnd - 16
+		top = cleanString(self.text[topStart:topEnd])
+		bottom = cleanString(self.text[bottomStart:bottomEnd])
+		fmtText = top + "\n" + bottom
+		lcd.clear()
+		lcd.message(fmtText)
 
 scroller = TextScroller()
 
@@ -181,8 +192,8 @@ class DisplayThread(threading.Thread):
 				refreshModeTime()
 			elif state == "play":
 				refreshModePlaying()
-			display(scroller.scroll())
-			sleep(1)
+			scroller.scroll()
+			sleep(.9)
 
 DisplayThread().start()
 
