@@ -7,6 +7,7 @@ import sys
 import subprocess
 import threading
 import os
+import re
 
 welcomeText = "Welcome on jotak's LCD Raspyfi!"
 musicAbsPath = "/home/pi/music/"
@@ -18,12 +19,21 @@ class TextScroller:
 	textLength = 0
 	step = 0
 
+	playPos = -1
+	playAnimPos = 0
+
 	def scroll(self):
 		nextPos = self.position + self.step
 		if nextPos < 0 or nextPos >= self.textLength - 16:
 			self.step *= -1
 		else:
 			self.position = nextPos
+
+		if self.playAnimPos + 1 >= self.playPos:
+			self.playAnimPos = 0
+		else:
+			self.playAnimPos = self.playAnimPos + 1
+
 		self.display()
 
 	def setText(self, newText):
@@ -37,21 +47,34 @@ class TextScroller:
 			# 1 means left to right
 			self.step = 1
 
+	def setPlayPos(self, newPos):
+		self.playPos = newPos
+		if self.playAnimPos >= newPos:
+			self.playAnimPos = newPos - 1
+			if self.playAnimPos < 0:
+				self.playAnimPos = 0
+
 	def display(self):
 		global lcd
 		topStart = self.position
 		topEnd = topStart + 16
-		bottomEnd = self.textLength - self.position - 1
-		bottomStart = bottomEnd - 16
 		top = cleanString(self.text[topStart:topEnd])
-		bottom = cleanString(self.text[bottomStart:bottomEnd])
+		fullArt = "~~~~~~~~~~~~~~~~"
+		bottom = "                "
+
+		if self.playPos < 0:
+			bottom = fullArt
+		else:
+			bottom = bottom[:self.playAnimPos] + fullArt[self.playAnimPos] + bottom[self.playAnimPos+1:]
+			bottom = bottom[:self.playPos] + ">" + bottom[self.playPos+1:]
+
 		fmtText = top + "\n" + bottom
 		lcd.clear()
 		lcd.message(fmtText)
 
 scroller = TextScroller()
 
-# Initialize the LCD plate.  Should auto-detect correct I2C bus.  If not,
+# Initialize the LCD plate. Should auto-detect correct I2C bus. If not,
 # pass '0' for early 256 MB Model B boards or '1' for all later versions
 lcd = Adafruit_CharLCDPlate()
 
@@ -160,7 +183,13 @@ def refreshModeList():
 
 def refreshModePlaying(forceSetText=False):
 	global previousSong, scroller
-	curSong = subprocess.check_output(["mpc", "current"])
+	statusLines = subprocess.check_output(["mpc"]).split('\n')
+	curSong = statusLines[0]
+	if len(statusLines) > 2:
+		pct = int(re.search('\\((\\d+)%', statusLines[1]).group(1))
+		scroller.setPlayPos(int(pct * 0.16))
+	else:
+		scroller.setPlayPos(-1)
 	if previousSong != curSong:
 		previousSong = curSong
 		changeColor()
