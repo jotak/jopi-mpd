@@ -185,11 +185,12 @@ def refreshModePlaying(forceSetText=False):
 	global previousSong, scroller
 	statusLines = subprocess.check_output(["mpc"]).split('\n')
 	curSong = statusLines[0]
+	pct = -1
 	if len(statusLines) > 2:
-		pct = int(re.search('\\((\\d+)%', statusLines[1]).group(1))
-		scroller.setPlayPos(int(pct * 0.16))
-	else:
-		scroller.setPlayPos(-1)
+		search = re.search('\\((\\d+)%', statusLines[1])
+		if search:
+			pct = int(0.16 * int(search.group(1)))
+	scroller.setPlayPos(pct)
 	if previousSong != curSong:
 		previousSong = curSong
 		changeColor()
