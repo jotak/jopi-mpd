@@ -9,8 +9,8 @@ import threading
 import os
 import re
 
-welcomeText = "Welcome on jotak's LCD Raspyfi!"
-musicAbsPath = "/home/pi/music/"
+welcomeText = "Welcome on jopi-mpd!"
+musicAbsPath = "/var/lib/mpd/music/"
 playlistRelPath = "WEBRADIO/playlists/"
 
 class TextScroller:
