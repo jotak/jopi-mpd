@@ -19,4 +19,4 @@ INSTALLATION STEPS:
 * If you want to start jopi-mpd automatically at startup:
   * Declare it as a service, by copying <jopi-mpd path>/init.d/jopi-mpd to /etc/init.d
     * You may have to manually edit this file: change variable "DAEMON" to match the path of your jopi-mpd installation (currently it's "DAEMON=/home/pi/jopi-mpd/$NAME.py")
-  * And then then make it autostarts: sudo update-rc.d jopi-mpd defaults
+  * And then make it autostarts: sudo update-rc.d jopi-mpd defaults
