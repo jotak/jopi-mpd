@@ -8,6 +8,7 @@ import subprocess
 import threading
 import os
 import re
+import logging
 
 welcomeText = "Welcome on jopi-mpd!"
 musicAbsPath = "/var/lib/mpd/music/"
@@ -214,33 +215,51 @@ def checkRun():
 
 class DisplayThread(threading.Thread):
 	def run (self):
+		dispError = False
 		while True:
-			global state, showingTime, scroller
-			if checkRun() == False:
-				break
-			if showingTime:
-				refreshModeTime()
-			elif state == "play":
-				refreshModePlaying()
-			scroller.scroll()
-			sleep(.9)
+			try:
+				global state, showingTime, scroller
+				if checkRun() == False:
+					break
+				if showingTime:
+					refreshModeTime()
+				elif state == "play":
+					refreshModePlaying()
+				scroller.scroll()
+				sleep(.9)
+				dispError = False
+		        except Exception, err:
+				if dispError == False:
+					logging.exception('')
+					dispError = True
+				else:
+					sleep(1)
 
 DisplayThread().start()
 
+globError = False
 while True:
-	if checkRun() == False:
-		break
-	sleep(.1)
-	nothingPressed = True
-	for i in range(5):
-		if lcd.buttonPressed(buttons[i]):
-			nothingPressed = False
-			if i != curPressed:
-				buttonPressed(i)
-				curPressed = i
-				break
-	if nothingPressed:
-		curPressed = -1
+	try:
+		if checkRun() == False:
+			break
+		sleep(.1)
+		nothingPressed = True
+		for i in range(5):
+			if lcd.buttonPressed(buttons[i]):
+				nothingPressed = False
+				if i != curPressed:
+					buttonPressed(i)
+					curPressed = i
+					break
+		if nothingPressed:
+			curPressed = -1
+		globError = False
+	except Exception, err:
+		if globError == False:
+			logging.exception('')
+			globError = True
+		else:
+			sleep(1)
 
 display("Goodbye!")
 
